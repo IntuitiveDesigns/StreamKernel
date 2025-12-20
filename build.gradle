@@ -1,0 +1,82 @@
+plugins {
+    id 'org.springframework.boot' version '3.2.5'
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'java'
+}
+
+group = 'com.example.streamkernel'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    sourceCompatibility = '21'
+
+    // Feature: Gradle Toolchain
+    // This forces Gradle to use a real JDK 21, even if your CLI is on Java 17.
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+springBoot {
+    mainClass = 'com.example.streamkernel.kafka.KafkaApp'
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url "https://packages.confluent.io/maven" }
+}
+
+dependencies {
+    // Core Framework
+    implementation 'org.springframework.boot:spring-boot-starter'
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // Kafka Client
+    implementation 'org.apache.kafka:kafka-clients:3.7.0'
+
+    // Logging & Metrics
+    implementation 'ch.qos.logback:logback-classic'
+    implementation 'io.micrometer:micrometer-core'
+    // ^^^ SimpleMeterRegistry is INSIDE this jar. No extra dependency needed.
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // Visual Observability
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+
+    // Avro + Confluent Schema Registry
+    implementation 'io.confluent:kafka-avro-serializer:7.6.1'
+    implementation 'org.apache.avro:avro:1.11.3'
+
+    // PostgreSQL support
+    implementation 'org.postgresql:postgresql:42.7.2'
+
+    // DataDog support
+    implementation 'io.micrometer:micrometer-registry-datadog'
+
+    // Redis Client
+    implementation 'redis.clients:jedis:5.1.0'
+
+    // SPI Helper (Google Auto Service
+    compileOnly 'com.google.auto.service:auto-service:1.1.1'
+    annotationProcessor 'com.google.auto.service:auto-service:1.1.1'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+springBoot {
+    mainClass = 'com.example.streamkernel.kafka.KafkaApp'
+}

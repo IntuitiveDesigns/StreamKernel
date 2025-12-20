@@ -1,0 +1,10 @@
+{
+  "type": "record",
+  "name": "CustomerEvent",
+  "namespace": "com.example.streamkernel.avro",
+  "fields": [
+    { "name": "customerId", "type": "string" },
+    { "name": "name",       "type": "string" },
+    { "name": "tier",       "type": "string" }
+  ]
+}

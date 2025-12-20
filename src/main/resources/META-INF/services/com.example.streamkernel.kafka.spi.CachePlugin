@@ -1,0 +1,2 @@
+com.example.streamkernel.kafka.plugins.NoopCachePlugin
+com.example.streamkernel.kafka.plugins.LocalCachePlugin

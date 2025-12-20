@@ -1,0 +1,34 @@
+global:
+  scrape_interval: 1s
+
+scrape_configs:
+  # ==========================================================
+  # StreamKernel pipeline (KafkaApp running on the HOST)
+  # ==========================================================
+  - job_name: "algorithm-streamkernel-pipeline"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["host.docker.internal:8080"]
+        labels:
+          app: "streamkernel"
+          component: "pipeline"
+
+  # ==========================================================
+  # Kafka exporter (runs in Docker)
+  # ==========================================================
+  - job_name: "kafka"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["kafka-exporter:9308"]
+        labels:
+          app: "kafka"
+
+  # ==========================================================
+  # Postgres exporter (runs in Docker)
+  # ==========================================================
+  - job_name: "postgres"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+        labels:
+          app: "postgres"

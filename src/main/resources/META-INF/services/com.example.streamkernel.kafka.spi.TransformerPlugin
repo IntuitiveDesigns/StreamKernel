@@ -1,0 +1,2 @@
+com.example.streamkernel.kafka.plugins.NoopTransformerPlugin
+com.example.streamkernel.kafka.plugins.UppercaseTransformerPlugin

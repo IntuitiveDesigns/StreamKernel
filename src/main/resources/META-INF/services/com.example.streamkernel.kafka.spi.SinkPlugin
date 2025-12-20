@@ -1,0 +1,4 @@
+com.example.streamkernel.kafka.plugins.KafkaSinkPlugin
+com.example.streamkernel.kafka.plugins.DevNullSinkPlugin
+com.example.streamkernel.kafka.plugins.DlqLogSinkPlugin
+com.example.streamkernel.kafka.plugins.KafkaAvroSinkPlugin

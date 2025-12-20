@@ -1,0 +1,141 @@
+# NOTE:
+# Docker Compose v2 warns that `version` is obsolete. It still works.
+# Keeping it is fine for tutorial clarity.
+version: "3.8"
+
+services:
+  # =======================================================================
+  # KAFKA BROKER (KRaft Mode — NO ZooKeeper)
+  #
+  # Exposes:
+  #   - localhost:9092  (host access)
+  # Internal Docker DNS:
+  #   - broker:29092    (container-to-container access)
+  #
+  # Since KafkaApp runs on the HOST in this model, it connects to:
+  #   localhost:9092
+  # =======================================================================
+  broker:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: arena-broker
+    hostname: broker
+    ports:
+      - "9092:9092"
+    volumes:
+      - ./data/kafka-data:/var/lib/kafka/data
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@broker:29093"
+
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+
+      KAFKA_NUM_NETWORK_THREADS: 8
+      KAFKA_NUM_IO_THREADS: 8
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+      KAFKA_LOG_RETENTION_HOURS: -1
+      KAFKA_LOG_RETENTION_BYTES: 536870912000
+      KAFKA_NUM_PARTITIONS: 10
+      KAFKA_MESSAGE_MAX_BYTES: 10485760
+      KAFKA_SOCKET_REQUEST_MAX_BYTES: 104857600
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_NUM_REPLICA_FETCHERS: 4
+
+  # =======================================================================
+  # POSTGRES (used when sink.type=POSTGRES)
+  #
+  # KafkaApp runs on the HOST, so it connects to:
+  #   jdbc:postgresql://localhost:5432/arena_db
+  #
+  # Containers connect internally via:
+  #   postgres:5432
+  # =======================================================================
+  postgres:
+    image: postgres:16
+    container_name: arena-postgres
+    environment:
+      POSTGRES_USER: arena
+      POSTGRES_PASSWORD: arena
+      POSTGRES_DB: arena_db
+    ports:
+      - "5432:5432"
+
+  # =======================================================================
+  # KAFKA EXPORTER (Prometheus)
+  #
+  # Exposes metrics at:
+  #   http://kafka-exporter:9308/metrics  (inside Docker network)
+  # =======================================================================
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: arena-kafka-exporter
+    depends_on:
+      - broker
+    command:
+      # Kafka is reachable inside the Docker network at broker:29092
+      - "--kafka.server=broker:29092"
+    ports:
+      # Optional: expose on host for manual testing
+      - "9308:9308"
+
+  # =======================================================================
+  # POSTGRES EXPORTER (Prometheus)
+  #
+  # Exposes metrics at:
+  #   http://postgres-exporter:9187/metrics (inside Docker network)
+  # =======================================================================
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: arena-postgres-exporter
+    depends_on:
+      - postgres
+    environment:
+      # This DSN is for the exporter container, so it uses postgres:5432
+      DATA_SOURCE_NAME: "postgresql://arena:arena@postgres:5432/arena_db?sslmode=disable"
+    ports:
+      # Optional: expose on host for manual testing
+      - "9187:9187"
+
+  # =======================================================================
+  # PROMETHEUS
+  #
+  # Scrapes:
+  #   - KafkaApp on the HOST: host.docker.internal:8080
+  #   - kafka-exporter in Docker: kafka-exporter:9308
+  #   - postgres-exporter in Docker: postgres-exporter:9187
+  # =======================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: arena-prometheus
+    depends_on:
+      - kafka-exporter
+      - postgres-exporter
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      # Lets Prometheus reach your host machine (Windows/Mac; also supported by Docker Desktop on Windows)
+      - "host.docker.internal:host-gateway"
+
+  # =======================================================================
+  # GRAFANA
+  # =======================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: arena-grafana
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
