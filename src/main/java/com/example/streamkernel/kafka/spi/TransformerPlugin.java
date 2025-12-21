@@ -6,5 +6,5 @@ import com.example.streamkernel.kafka.metrics.MetricsRuntime;
 
 public interface TransformerPlugin {
     String id(); // e.g. "NOOP", "UPPER"
-    Transformer<String, String> create(PipelineConfig config, MetricsRuntime metrics) throws Exception;
+    Transformer<?, ?> create(PipelineConfig config, MetricsRuntime metrics) throws Exception;
 }

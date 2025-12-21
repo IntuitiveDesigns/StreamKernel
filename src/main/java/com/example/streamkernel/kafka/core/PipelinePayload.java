@@ -12,13 +12,13 @@ import java.util.UUID;
  * @param id Unique ID for tracing (Correlation ID) - Critical for DLQ debugging
  * @param data The actual payload (Generic T)
  * @param timestamp Ingestion time
- * @param metadata Headers, Source System info, etc.
+ * @param headers Headers, Source System info, etc.
  */
 public record PipelinePayload<T>(
         String id,
         T data,
         Instant timestamp,
-        Map<String, String> metadata
+        Map<String, String> headers
 ) {
 
     // -----------------------------------------------------------------------
@@ -41,6 +41,6 @@ public record PipelinePayload<T>(
     // Allows the Transformer to change the DATA (T -> R)
     // while preserving the ID and Timestamp (Traceability).
     public <R> PipelinePayload<R> withData(R newData) {
-        return new PipelinePayload<>(id, newData, timestamp, metadata);
+        return new PipelinePayload<>(id, newData, timestamp, headers);
     }
 }

@@ -1,6 +1,7 @@
 plugins {
     id 'org.springframework.boot' version '3.2.5'
     id 'io.spring.dependency-management' version '1.1.4'
+    id "com.github.davidmc24.gradle.plugin.avro" version "1.9.1"
     id 'java'
 }
 
@@ -68,9 +69,30 @@ dependencies {
     // Redis Client
     implementation 'redis.clients:jedis:5.1.0'
 
+    // MongoDB support
+    implementation 'org.mongodb:mongodb-driver-sync:5.0.0'
+
     // SPI Helper (Google Auto Service
     compileOnly 'com.google.auto.service:auto-service:1.1.1'
     annotationProcessor 'com.google.auto.service:auto-service:1.1.1'
+}
+
+generateAvroJava {
+    source("src/main/resources/avro")
+    // CHANGED: 'destinationDir' is now 'outputDir'
+    outputDir = file("build/generated/sources/avro/java/main")
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir("build/generated/sources/avro/java/main")
+        }
+    }
+}
+
+tasks.named("compileJava").configure {
+    dependsOn("generateAvroJava")
 }
 
 tasks.named('test') {

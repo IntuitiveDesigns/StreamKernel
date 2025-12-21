@@ -51,6 +51,42 @@ services:
       KAFKA_NUM_REPLICA_FETCHERS: 4
 
   # =======================================================================
+  # SCHEMA REGISTRY (REQUIRED FOR AVRO SINK)
+  #
+  # Exposes:
+  #   - localhost:8081 (Used by your Java App)
+  #   - schema-registry:8081 (Used internally)
+  # =======================================================================
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.6.1
+    container_name: arena-schema-registry
+    depends_on:
+      - broker
+    ports:
+      - "8081:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'broker:29092'
+      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+
+  # =======================================================================
+  # MONGODB (REQUIRED FOR VECTOR SINK)
+  #
+  # Exposes:
+  #   - localhost:27017 (Used by your Java App)
+  # =======================================================================
+  mongodb:
+    image: mongo:7.0
+    container_name: arena-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data/mongo-data:/data/db
+    environment:
+      # Optional: Add auth if needed, but keeping it open for dev speed
+      MONGO_INITDB_DATABASE: support_db
+
+  # =======================================================================
   # POSTGRES (used when sink.type=POSTGRES)
   #
   # KafkaApp runs on the HOST, so it connects to:

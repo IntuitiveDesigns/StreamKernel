@@ -2,11 +2,7 @@ package com.example.streamkernel.kafka;
 
 import com.example.streamkernel.kafka.config.PipelineConfig;
 import com.example.streamkernel.kafka.config.PipelineFactory;
-import com.example.streamkernel.kafka.core.CacheStrategy;
-import com.example.streamkernel.kafka.core.OutputSink;
-import com.example.streamkernel.kafka.core.PipelineOrchestrator;
-import com.example.streamkernel.kafka.core.SourceConnector;
-import com.example.streamkernel.kafka.core.Transformer;
+import com.example.streamkernel.kafka.core.*;
 import com.example.streamkernel.kafka.metrics.MetricsFactory;
 import com.example.streamkernel.kafka.metrics.MetricsRuntime;
 import com.example.streamkernel.kafka.output.KafkaSink;
@@ -21,7 +17,7 @@ public class KafkaApp {
     private static final Logger log = LoggerFactory.getLogger(KafkaApp.class);
 
     public static void main(String[] args) {
-        log.info("=== Booting Enterprise Pipeline Agent (v3.4 - 10s Acked EPS + InFlight) ===");
+        log.info("=== Booting StreamKernel (v4.0 - Generics + Speedometer) ===");
 
         PipelineConfig config = PipelineConfig.get();
         PipelineFactory.logAvailablePlugins();
@@ -34,19 +30,26 @@ public class KafkaApp {
 
         CountDownLatch shutdownLatch = new CountDownLatch(1);
 
-        OutputSink<String> sink = null;
-        OutputSink<String> dlq  = null;
+        // We use arrays to hold references for the shutdown hook lambda
+        final OutputSink<?>[] sinks = new OutputSink<?>[2];
 
         try {
-            SourceConnector<String> source = PipelineFactory.createSource(config, metrics);
-            sink = PipelineFactory.createSink(config, metrics);
-            dlq  = PipelineFactory.createDlq(config, metrics);
-            Transformer<String, String> transformer = PipelineFactory.createTransformer(config, metrics);
-            CacheStrategy<String> cache = PipelineFactory.createCache(config, metrics);
+            // 1. Create Components (Generic Types)
+            SourceConnector<?> source = PipelineFactory.createSource(config, metrics);
+            OutputSink<?> sink = PipelineFactory.createSink(config, metrics);
+            OutputSink<?> dlq = PipelineFactory.createDlq(config, metrics);
+            Transformer<?, ?> transformer = PipelineFactory.createTransformer(config, metrics);
+            CacheStrategy<?> cache = PipelineFactory.createCache(config, metrics);
+
+            sinks[0] = sink;
+            sinks[1] = dlq;
 
             LongAdder processedCounter = new LongAdder();
 
-            PipelineOrchestrator<String, String> pipeline = new PipelineOrchestrator<>(
+            // 2. Instantiate Orchestrator using Raw Types
+            // @SuppressWarnings lets us wire up dynamic plugins (Avro/String/Mongo) safely
+            @SuppressWarnings({"rawtypes", "unchecked"})
+            PipelineOrchestrator pipeline = new PipelineOrchestrator(
                     source,
                     sink,
                     dlq,
@@ -57,24 +60,22 @@ public class KafkaApp {
                     appBatchSize
             );
 
+            // 3. Speedometer Setup (Retaining your logic)
             KafkaSink kafkaSink = (sink instanceof KafkaSink ks) ? ks : null;
 
-            // 10-second stable window
             int windowSeconds = Integer.parseInt(config.getProperty("streamkernel.speedometer.window.seconds", "10"));
             windowSeconds = Math.max(5, Math.min(60, windowSeconds));
 
             startSpeedometer(processedCounter, kafkaSink, windowSeconds);
 
-            OutputSink<String> finalSink = sink;
-            OutputSink<String> finalDlq  = dlq;
-
+            // 4. Shutdown Hook
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 log.info("🛑 Shutdown signal received...");
                 try {
                     pipeline.stop();
                 } finally {
-                    try { if (finalSink != null) finalSink.close(); } catch (Exception ignored) {}
-                    try { if (finalDlq  != null) finalDlq.close(); } catch (Exception ignored) {}
+                    try { if (sinks[0] != null) sinks[0].close(); } catch (Exception ignored) {}
+                    try { if (sinks[1] != null) sinks[1].close(); } catch (Exception ignored) {}
                     try { metrics.close(); } catch (Exception ignored) {}
                     shutdownLatch.countDown();
                 }
@@ -85,13 +86,14 @@ public class KafkaApp {
 
         } catch (Exception e) {
             log.error("Fatal Application Error", e);
-            try { if (sink != null) sink.close(); } catch (Exception ignored) {}
-            try { if (dlq  != null) dlq.close(); } catch (Exception ignored) {}
+            try { if (sinks[0] != null) sinks[0].close(); } catch (Exception ignored) {}
+            try { if (sinks[1] != null) sinks[1].close(); } catch (Exception ignored) {}
             try { metrics.close(); } catch (Exception ignored) {}
             System.exit(1);
         }
     }
 
+    // --- YOUR ORIGINAL SPEEDOMETER LOGIC (Restored) ---
     private static void startSpeedometer(LongAdder processedCounter, KafkaSink kafkaSink, int windowSeconds) {
         Thread speedThread = new Thread(() -> {
             long lastProcessed = 0;
@@ -112,8 +114,9 @@ public class KafkaApp {
                 long nowMs = System.currentTimeMillis();
                 long elapsedMs = nowMs - windowStartMs;
 
+                // Wait for the full window (e.g., 10s) before printing
                 if (elapsedMs < (windowSeconds * 1000L)) {
-                    continue; // wait until full window completes
+                    continue;
                 }
 
                 double seconds = elapsedMs / 1000.0;
