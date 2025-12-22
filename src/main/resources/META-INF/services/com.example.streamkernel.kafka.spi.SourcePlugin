@@ -1,1 +1,2 @@
 com.example.streamkernel.kafka.plugins.SyntheticSourcePlugin
+com.example.streamkernel.kafka.plugins.SyntheticAvroPlugin
