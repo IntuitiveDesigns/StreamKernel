@@ -156,6 +156,38 @@ Then follow the specific playbooks in `docs/`.
 
 ---
 
+## Profiles
+
+Profiles live under `config/profiles/` and are intended to be runnable, copy/paste configurations.
+
+| Profile | Kafka Transport | OPA RBAC | Sink | Transform | Metrics | Primary Use |
+|---|---|---:|---|---|---|---|
+| `bench-plaintext.properties` | PLAINTEXT `:9092` | No | Kafka (String) | NOOP | Prometheus | Peak throughput baselines |
+| `bench-mtls.properties` | mTLS/SSL `:9093` | No | Kafka (String) | NOOP | Prometheus | Throughput with encryption |
+| `secure-durable-mtls-opa.properties` | mTLS/SSL `:9093` | Yes | Kafka (String) | NOOP | Prometheus | “Enterprise posture” run |
+| `avro-schema-registry.properties` | PLAINTEXT `:9092` | No | Kafka (Avro) | NOOP | Prometheus | Schema Registry + Avro |
+| `mongodb-vector.properties` | N/A (source synthetic by default) | Optional | MongoDB | AI_ENRICHMENT | Prometheus | Vector write path smoke test |
+| `metrics-datadog.properties` | PLAINTEXT `:9092` | No | Kafka (String) | NOOP | Datadog | Swap Prom/Grafana for DD |
+
+### Running a profile
+
+If your app supports `-Dstreamkernel.profile`:
+
+```bash
+java -Dstreamkernel.profile=bench-plaintext -jar build/libs/StreamKernel-0.0.1-SNAPSHOT-all.jar
+```
+
+If you prefer a CLI arg, implement `--profile=<name>` and map it to `config/profiles/<name>.properties`.
+
+## Security notes
+
+- **Do not commit `/secrets`**. Treat keystores/truststores as credentials.
+- Check in the *certificate generation script* and the *shape of required filenames* instead.
+
+See `docs/PROFILES.md`.
+
+---
+
 ## 🗺 Roadmap
 
 ### Phase 1: Security Hardening (Completed 12/23/2025)

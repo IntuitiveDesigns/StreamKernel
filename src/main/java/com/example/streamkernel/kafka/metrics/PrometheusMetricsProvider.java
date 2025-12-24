@@ -8,6 +8,7 @@ import io.micrometer.prometheus.PrometheusMeterRegistry;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Executors;
 
 public final class PrometheusMetricsProvider implements MetricsProvider {
 
@@ -16,6 +17,10 @@ public final class PrometheusMetricsProvider implements MetricsProvider {
     @Override
     public MetricsRuntime create(MetricsSettings s) {
         PrometheusMeterRegistry reg = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+
+        // Apply consistent tags across the entire app
+        MetricsUtil.applyCommonTags(reg, s);
+
         HttpServer server = start(reg, s.prometheusPort);
 
         return new MetricsRuntime() {
@@ -34,6 +39,14 @@ public final class PrometheusMetricsProvider implements MetricsProvider {
     private static HttpServer start(PrometheusMeterRegistry registry, int port) {
         try {
             HttpServer server = HttpServer.create(new InetSocketAddress(port), 0);
+
+            // keep scrape handling deterministic
+            server.setExecutor(Executors.newSingleThreadExecutor(r -> {
+                Thread t = new Thread(r, "metrics-http-server");
+                t.setDaemon(true);
+                return t;
+            }));
+
             server.createContext("/metrics", exchange -> {
                 byte[] bytes = registry.scrape().getBytes(StandardCharsets.UTF_8);
                 exchange.getResponseHeaders().set("Content-Type", "text/plain; version=0.0.4; charset=utf-8");
@@ -41,10 +54,7 @@ public final class PrometheusMetricsProvider implements MetricsProvider {
                 try (OutputStream os = exchange.getResponseBody()) { os.write(bytes); }
             });
 
-            Thread t = new Thread(server::start, "metrics-http-server");
-            t.setDaemon(true);
-            t.start();
-
+            server.start();
             return server;
         } catch (Exception e) {
             throw new RuntimeException("Failed to start Prometheus metrics server", e);
