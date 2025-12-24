@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.Set;
 
 public class PipelineConfig {
 
@@ -62,8 +63,13 @@ public class PipelineConfig {
         return Integer.parseInt(val);
     }
 
-    // --- THE MISSING METHOD ---
+    // --- REQUIRED FOR KAFKA DRIVER PASSTHROUGH ---
     public Properties getProperties() {
         return this.properties;
+    }
+
+    // --- REQUIRED FOR ITERATING SECURITY KEYS ---
+    public Set<String> keys() {
+        return properties.stringPropertyNames();
     }
 }

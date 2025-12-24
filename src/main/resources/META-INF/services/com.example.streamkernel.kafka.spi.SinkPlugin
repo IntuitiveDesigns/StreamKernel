@@ -3,3 +3,4 @@ com.example.streamkernel.kafka.plugins.DevNullSinkPlugin
 com.example.streamkernel.kafka.plugins.DlqLogSinkPlugin
 com.example.streamkernel.kafka.plugins.KafkaAvroSinkPlugin
 com.example.streamkernel.kafka.plugins.MongoSinkPlugin
+com.example.streamkernel.kafka.plugins.KafkaDlqSinkPlugin

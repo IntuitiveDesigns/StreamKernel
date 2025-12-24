@@ -3,6 +3,8 @@ plugins {
     id 'io.spring.dependency-management' version '1.1.4'
     id "com.github.davidmc24.gradle.plugin.avro" version "1.9.1"
     id 'java'
+    id 'application' // <--- ADDED: Required to define mainClassName for the Manifest
+    id 'com.github.johnrengelman.shadow' version '8.1.1' // <--- ADDED: Builds the "Fat JAR"
 }
 
 group = 'com.example.streamkernel'
@@ -10,14 +12,17 @@ version = '0.0.1-SNAPSHOT'
 
 java {
     sourceCompatibility = '21'
-
-    // Feature: Gradle Toolchain
-    // This forces Gradle to use a real JDK 21, even if your CLI is on Java 17.
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
+// Configuration for the Application Plugin
+application {
+    mainClass = 'com.example.streamkernel.kafka.KafkaApp'
+}
+
+// Configuration for Spring Boot (Kept for compatibility)
 springBoot {
     mainClass = 'com.example.streamkernel.kafka.KafkaApp'
 }
@@ -44,7 +49,6 @@ dependencies {
     // Logging & Metrics
     implementation 'ch.qos.logback:logback-classic'
     implementation 'io.micrometer:micrometer-core'
-    // ^^^ SimpleMeterRegistry is INSIDE this jar. No extra dependency needed.
 
     // Lombok
     compileOnly 'org.projectlombok:lombok'
@@ -72,14 +76,13 @@ dependencies {
     // MongoDB support
     implementation 'org.mongodb:mongodb-driver-sync:5.0.0'
 
-    // SPI Helper (Google Auto Service
+    // SPI Helper (Google Auto Service)
     compileOnly 'com.google.auto.service:auto-service:1.1.1'
     annotationProcessor 'com.google.auto.service:auto-service:1.1.1'
 }
 
 generateAvroJava {
     source("src/main/resources/avro")
-    // CHANGED: 'destinationDir' is now 'outputDir'
     outputDir = file("build/generated/sources/avro/java/main")
 }
 
@@ -99,6 +102,13 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
-springBoot {
-    mainClass = 'com.example.streamkernel.kafka.KafkaApp'
+// --- SHADOW JAR CONFIGURATION ---
+// This ensures the "shadowJar" task knows about the Spring Boot dependencies
+// and merges service files (important for SPI plugins like your Connectors)
+shadowJar {
+    archiveClassifier.set('all') // The file will be named StreamKernel-0.0.1-SNAPSHOT-all.jar
+    mergeServiceFiles()
 }
+
+// Ensure 'gradle build' also generates the shadow jar
+tasks.build.dependsOn tasks.shadowJar

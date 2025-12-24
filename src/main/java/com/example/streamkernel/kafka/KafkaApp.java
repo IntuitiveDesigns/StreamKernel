@@ -6,6 +6,7 @@ import com.example.streamkernel.kafka.core.*;
 import com.example.streamkernel.kafka.metrics.MetricsFactory;
 import com.example.streamkernel.kafka.metrics.MetricsRuntime;
 import com.example.streamkernel.kafka.output.KafkaSink;
+import com.example.streamkernel.kafka.security.OpaAuthorizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +18,7 @@ public class KafkaApp {
     private static final Logger log = LoggerFactory.getLogger(KafkaApp.class);
 
     public static void main(String[] args) {
-        log.info("=== Booting StreamKernel (v4.0 - Generics + Speedometer) ===");
+        log.info("=== Booting StreamKernel (v4.0 - Generics + Security + Speedometer) ===");
 
         PipelineConfig config = PipelineConfig.get();
         PipelineFactory.logAvailablePlugins();
@@ -46,7 +47,13 @@ public class KafkaApp {
 
             LongAdder processedCounter = new LongAdder();
 
-            // 2. Instantiate Orchestrator using Raw Types
+            // 2. Security Setup (New)
+            String opaUrl = config.getProperty("security.opa.url"); // e.g. http://localhost:8181...
+            OpaAuthorizer opa = (opaUrl != null && !opaUrl.isBlank()) ? new OpaAuthorizer(opaUrl) : null;
+            String serviceAccount = config.getProperty("app.service.account", "default-service-account");
+            String targetResource = config.getProperty("sink.topic", "unknown-topic");
+
+            // 3. Instantiate Orchestrator using Raw Types
             // @SuppressWarnings lets us wire up dynamic plugins (Avro/String/Mongo) safely
             @SuppressWarnings({"rawtypes", "unchecked"})
             PipelineOrchestrator pipeline = new PipelineOrchestrator(
@@ -57,10 +64,13 @@ public class KafkaApp {
                     cache,
                     processedCounter,
                     parallelism,
-                    appBatchSize
+                    appBatchSize,
+                    opa,               // <--- NEW: OPA Authorizer
+                    serviceAccount,    // <--- NEW: Identity
+                    targetResource     // <--- NEW: Resource
             );
 
-            // 3. Speedometer Setup (Retaining your logic)
+            // 4. Speedometer Setup (Retaining your logic)
             KafkaSink kafkaSink = (sink instanceof KafkaSink ks) ? ks : null;
 
             int windowSeconds = Integer.parseInt(config.getProperty("streamkernel.speedometer.window.seconds", "10"));
@@ -68,7 +78,7 @@ public class KafkaApp {
 
             startSpeedometer(processedCounter, kafkaSink, windowSeconds);
 
-            // 4. Shutdown Hook
+            // 5. Shutdown Hook
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 log.info("🛑 Shutdown signal received...");
                 try {

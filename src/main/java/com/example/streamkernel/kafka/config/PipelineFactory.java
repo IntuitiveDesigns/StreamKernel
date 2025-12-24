@@ -71,6 +71,17 @@ public final class PipelineFactory {
         }
     }
 
+    // DLQ Serializer factory
+    public static DlqSerializer<?> createDlqSerializer(PipelineConfig config, MetricsRuntime metrics) {
+        String id = config.getProperty("dlq.serializer.type", "STRING");
+        DlqSerializerPlugin plugin = CATALOG.dlqSerializers.require(id, "dlq.serializer.type");
+        try {
+            return plugin.create(config, metrics);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed creating DLQ Serializer [" + id + "]", e);
+        }
+    }
+
     // --- UTILITIES ---
 
     public static void logAvailablePlugins() {
