@@ -1,5 +1,6 @@
 # StreamKernel
-
+[![Architected by Steven Lopez](https://img.shields.io/badge/Architected%20by-Steven%20Lopez-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/steve-lopez-b9941/)
+---
 ![Java 21](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=java)
 ![Kafka](https://img.shields.io/badge/Kafka-3.6-black?style=for-the-badge&logo=apachekafka)
 ![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
@@ -172,4 +173,4 @@ Then follow the specific playbooks in `docs/`.
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-**Author:** Steven Lopez
+**Author:** Steven Lo
