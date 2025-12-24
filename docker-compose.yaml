@@ -75,18 +75,20 @@ services:
 
       # --- SECURITY (SSL / mTLS) ---
       # Points to the files mounted in /etc/kafka/secrets
-      KAFKA_SSL_KEYSTORE_FILENAME: kafka.server.keystore.jks
-      KAFKA_SSL_TRUSTSTORE_FILENAME: kafka.truststore.jks
-      KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.server.keystore.jks
+      KAFKA_SSL_KEYSTORE_CREDENTIALS: keystore_creds
+      KAFKA_SSL_KEY_CREDENTIALS: key_creds
+      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: truststore_creds
+      KAFKA_SSL_KEYSTORE_FILENAME: kafka.server.keystore.p12
+      KAFKA_SSL_TRUSTSTORE_FILENAME: kafka.truststore.p12
+      KAFKA_SSL_KEYSTORE_LOCATION: /etc/kafka/secrets/kafka.server.keystore.p12
+      KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.truststore.p12
       KAFKA_SSL_KEYSTORE_PASSWORD: changeit
-      KAFKA_SSL_KEY_CREDENTIALS: password.txt
-      KAFKA_SSL_KEYSTORE_CREDENTIALS: password.txt
-      KAFKA_SSL_TRUSTSTORE_CREDENTIALS: password.txt
       KAFKA_SSL_KEY_PASSWORD: changeit
-      KAFKA_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.truststore.jks
       KAFKA_SSL_TRUSTSTORE_PASSWORD: changeit
       # Forces clients to present a certificate (mTLS)
       KAFKA_SSL_CLIENT_AUTH: required
+      KAFKA_SSL_KEYSTORE_TYPE: PKCS12
+      KAFKA_SSL_TRUSTSTORE_TYPE: PKCS12
 
   # =======================================================================
   # SCHEMA REGISTRY (REQUIRED FOR AVRO SINK)

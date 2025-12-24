@@ -24,3 +24,13 @@ Thumbs.db
 
 # Kafka docker build
 data/
+
+# 🔐 Secrets (never commit)
+secrets/
+*.jks
+*.p12
+*.key
+*.pem
+*.crt
+password.txt
+*_creds

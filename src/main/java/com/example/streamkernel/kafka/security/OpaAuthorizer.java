@@ -15,29 +15,29 @@ public final class OpaAuthorizer {
 
     private final HttpClient client;
     private final URI opaUri;
-    private final Duration timeout;
+    private final Duration requestTimeout;
 
     public OpaAuthorizer(String opaUrl) {
-        this(opaUrl, Duration.ofMillis(500));
+        this(opaUrl, Duration.ofMillis(300), Duration.ofMillis(200));
     }
 
-    public OpaAuthorizer(String opaUrl, Duration timeout) {
+    public OpaAuthorizer(String opaUrl, Duration connectTimeout, Duration requestTimeout) {
         this.client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofMillis(300))
+                .connectTimeout(connectTimeout == null ? Duration.ofMillis(300) : connectTimeout)
                 .build();
+
         this.opaUri = URI.create(opaUrl);
-        this.timeout = (timeout == null) ? Duration.ofMillis(500) : timeout;
+        this.requestTimeout = (requestTimeout == null) ? Duration.ofMillis(200) : requestTimeout;
     }
 
     public boolean isAllowed(String user, String action, String resource) {
-        String body = "{\"input\":{\"user\":\"" + escapeJson(user) +
-                "\",\"action\":\"" + escapeJson(action) +
-                "\",\"resource\":\"" + escapeJson(resource) + "\"}}";
+        // Build JSON without allocations from String.format
+        String body = buildBody(user, action, resource);
 
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(opaUri)
-                    .timeout(timeout)
+                    .timeout(requestTimeout)
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build();
@@ -45,9 +45,8 @@ public final class OpaAuthorizer {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                // Fail closed
                 log.debug("OPA non-2xx response. status={} body={}", response.statusCode(), response.body());
-                return false;
+                return false; // fail-closed
             }
 
             return parseOpaResult(response.body());
@@ -56,6 +55,20 @@ public final class OpaAuthorizer {
             log.error("OPA check failed (fail-closed)", e);
             return false;
         }
+    }
+
+    private static String buildBody(String user, String action, String resource) {
+        String u = escapeJson(user);
+        String a = escapeJson(action);
+        String r = escapeJson(resource);
+
+        // {"input":{"user":"...","action":"...","resource":"..."}}
+        StringBuilder sb = new StringBuilder(u.length() + a.length() + r.length() + 64);
+        sb.append("{\"input\":{\"user\":\"").append(u)
+                .append("\",\"action\":\"").append(a)
+                .append("\",\"resource\":\"").append(r)
+                .append("\"}}");
+        return sb.toString();
     }
 
     static boolean parseOpaResult(String body) {
