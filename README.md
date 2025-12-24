@@ -6,6 +6,9 @@
 ![GitHub all releases](https://img.shields.io/github/downloads/stevenlopez/streamkernel/total?style=for-the-badge&label=Downloads)
 ![GitHub stars](https://img.shields.io/github/stars/stevenlopez/streamkernel?style=for-the-badge)
 
+![StreamKernel logo](assets/StreamKernel-logo.png)
+
+
 **StreamKernel** is a high-performance, enterprise-grade event orchestration engine designed to bridge the gap between low-latency data movement and intelligent data enrichment.
 
 Created and maintained by **Steven Lopez**, this framework utilizes **Java 21 Virtual Threads** and **ZGC** to serve as a lightweight, modular "kernel" for streaming data—handling concurrency, backpressure, and error resilience while delegating business logic to pluggable components.
@@ -56,70 +59,88 @@ graph TD
 ```
 
 ---
+Source → Transform → Sink
+↓
+OPA
+↓
+DLQ
+---
 
-## ⚡ Quick Start (Local)
+# StreamKernel — Local Test Playbooks
 
-This profile is tuned for maximum throughput on a local developer machine using Docker for infrastructure and the host machine for the kernel.
+This repo contains step-by-step, copy/paste playbooks for validating StreamKernel’s major capabilities:
 
-### Prerequisites
-* Java 21+
-* Docker & Docker Compose
+- Kafka bench runs (SYNTHETIC ring-buffer source)
+- mTLS (SSL) connectivity to Kafka
+- Open Policy Agent (OPA) topic-level authorization
+- DLQ strategies (LOG + Kafka DLQ topic, with serializer)
+- Prometheus + Grafana dashboards
+- Schema Registry + Avro sink/source validation
+- MongoDB Vector sink validation
+- Transformer validation
 
-### 1. Start Infrastructure
-Launch Kafka, Zookeeper, Schema Registry, and MongoDB.
+## Folder Structure
+
+- `docs/` — individual playbooks, one capability per file
+- `docs/_common.md` — shared prerequisites and conventions
+
+## Quick Start
+
+1. Start infrastructure:
 ```bash
-docker-compose up -d
+docker compose up -d
+docker compose ps
 ```
 
-### 2. Prepare Topics
-Create the benchmark topic with settings optimized for high throughput.
+2. Create topics (bootstrap inside the container):
 ```bash
-docker exec stream-broker kafka-topics \
-  --bootstrap-server localhost:9092 \
-  --create \
-  --topic arena-bench-test \
-  --partitions 6 \
-  --replication-factor 1 \
-  --config max.message.bytes=10485760
+docker exec -it arena-broker kafka-topics --bootstrap-server broker:29092 --create --if-not-exists --topic arena-bench-test --partitions 6 --replication-factor 1 --config max.message.bytes=10485760
+docker exec -it arena-broker kafka-topics --bootstrap-server broker:29092 --create --if-not-exists --topic streamkernel-dlq --partitions 6 --replication-factor 1
 ```
 
-### 3. Build the Kernel
-Skip tests for a rapid build iteration.
+3. Build and run StreamKernel:
 ```bash
 ./gradlew clean build -x test
-```
-
-### 4. Run (High Performance Mode)
-We use the **Z Garbage Collector (ZGC)** to maintain sub-millisecond pause times even under heavy heap pressure (4GB+).
-
-```bash
-java -Xms4g -Xmx4g \
-     -XX:+UseZGC -XX:+ZGenerational \
-     -jar build/libs/StreamKernel-1.0.0-SNAPSHOT.jar
+java -Xms4g -Xmx4g -XX:+UseZGC -XX:+ZGenerational -jar .\build\libs\StreamKernel-0.0.1-SNAPSHOT-all.jar
 ```
 
 ---
 
-## 🔌 Configuration
+Then follow the specific playbooks in `docs/`.
 
-The kernel is configured via `pipeline.properties`.
+## Recommended Run Order
 
-**Key Profiles:**
-* **`pipeline.properties` (Default):** Uses Synthetic data sources and a DevNull sink for raw throughput testing (100k+ msg/sec).
-* **`pipeline-enterprise.properties`:** Enables Kafka Avro Source, Schema Registry, and MongoDB Vector Sinks.
+1. `docs/01_synthetic_kafka_bench.md`
+2. `docs/02_opa_authorization.md`
+3. `docs/03_mtls_ssl.md`
+4. `docs/04_dlq.md`
+5. `docs/05_prometheus_grafana.md`
+6. `docs/06_transforms.md`
+7. `docs/07_schema_registry_avro.md`
+8. `docs/08_mongodb_vector_sink.md`
 
-To run with a specific config:
-```bash
-java -jar build/libs/StreamKernel.jar --config config/pipeline-enterprise.properties
-```
+---
+
+## Configuration Profiles (config/profiles)
+
+| Profile | Purpose | Security | Kafka | OPA | DLQ | Observability |
+|------|--------|---------|------|-----|-----|--------------|
+| `01-synthetic-bench.properties` | Max throughput benchmark | ❌ | PLAINTEXT | ❌ | ❌ | ✅ |
+| `02-opa-secure.properties` | Authorization testing | ❌ | PLAINTEXT | ✅ | ❌ | ✅ |
+| `03-mtls-kafka.properties` | mTLS validation | ✅ | SSL | ❌ | ❌ | ✅ |
+| `04-dlq-durable.properties` | Failure handling | ❌ | PLAINTEXT | ❌ | ✅ | ✅ |
+| `05-avro-schema.properties` | Schema Registry / Avro | ❌ | PLAINTEXT | ❌ | ❌ | ❌ |
+| `06-mongodb-vector.properties` | MongoDB Vector sink | ❌ | N/A | ❌ | ❌ | ❌ |
+| `07-transforms.properties` | Transform validation | ❌ | DEVNULL | ❌ | ❌ | ❌ |
+| `08-full-enterprise.properties` | Production-grade pipeline | ✅ | SSL | ✅ | ✅ | ✅ |
 
 ---
 
 ## 🗺 Roadmap
 
-### Phase 1: Security Hardening (In Progress)
-* [ ] **mTLS Encryption:** Enforce strict mutual TLS between the Kernel and Kafka brokers.
-* [ ] **RBAC:** Integration with Open Policy Agent (OPA) for topic-level authorization.
+### Phase 1: Security Hardening (Completed 12/23/2025)
+* [x] **mTLS Encryption:** Enforce strict mutual TLS between the Kernel and Kafka brokers.
+* [x] **RBAC:** Integration with Open Policy Agent (OPA) for topic-level authorization.
 
 ### Phase 2: Cloud Native
 * [ ] **Kubernetes Support:** Helm charts for deploying StreamKernel as a scalable `Deployment`.
