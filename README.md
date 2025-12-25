@@ -201,6 +201,28 @@ See `docs/PROFILES.md`.
 
 ---
 
+## Why Apache License 2.0?
+
+StreamKernel is licensed under the Apache License 2.0 to strike a balance between
+open collaboration and enterprise-grade safety.
+
+Apache 2.0 was chosen because it:
+
+- ✔ Allows free use, modification, and redistribution (including commercial use)
+- ✔ Provides an explicit patent grant (important for distributed systems)
+- ✔ Protects contributors and users from patent litigation
+- ✔ Is widely accepted by enterprises and cloud providers
+- ✔ Avoids viral copyleft obligations (unlike GPL)
+
+This makes StreamKernel suitable for:
+- Open-source experimentation
+- Enterprise adoption
+- Commercial derivatives and SaaS offerings
+- Long-term ecosystem growth
+
+Apache 2.0 ensures StreamKernel can evolve without limiting how others build on it.
+
+---
 ## License
 
 StreamKernel is licensed under the Apache License, Version 2.0.
