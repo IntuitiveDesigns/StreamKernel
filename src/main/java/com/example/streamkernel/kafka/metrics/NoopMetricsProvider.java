@@ -9,19 +9,24 @@
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND.
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
  */
+
 package com.example.streamkernel.kafka.metrics;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.noop.NoopMeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 public final class NoopMetricsProvider implements MetricsProvider {
     @Override public String type() { return "NONE"; }
 
     @Override
     public MetricsRuntime create(MetricsSettings s) {
-        MeterRegistry reg = new NoopMeterRegistry();
+        SimpleMeterRegistry reg = new SimpleMeterRegistry();
         return new MetricsRuntime() {
             @Override public MeterRegistry registry() { return reg; }
             @Override public boolean enabled() { return false; }
