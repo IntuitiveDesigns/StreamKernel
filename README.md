@@ -205,4 +205,4 @@ See `docs/PROFILES.md`.
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-**Author:** Steven Lo
+**Author:** Steven Lopez
