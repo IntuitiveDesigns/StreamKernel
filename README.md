@@ -3,9 +3,9 @@
 ---
 ![Java 21](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=java)
 ![Kafka](https://img.shields.io/badge/Kafka-3.6-black?style=for-the-badge&logo=apachekafka)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
-![GitHub all releases](https://img.shields.io/github/downloads/stevenlopez/streamkernel/total?style=for-the-badge&label=Downloads)
-![GitHub stars](https://img.shields.io/github/stars/stevenlopez/streamkernel?style=for-the-badge)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](https://github.com/IntuitiveDesigns/StreamKernel/blob/main/LICENSE)
+[![GitHub all releases](https://img.shields.io/github/downloads/IntuitiveDesigns/StreamKernel/total?style=for-the-badge&label=Downloads)](https://github.com/IntuitiveDesigns/StreamKernel/releases)
+[![GitHub stars](https://img.shields.io/github/stars/IntuitiveDesigns/StreamKernel?style=for-the-badge)](https://github.com/IntuitiveDesigns/StreamKernel/stargazers)
 
 ![StreamKernel logo](assets/StreamKernel-logo.png)
 
@@ -201,8 +201,10 @@ See `docs/PROFILES.md`.
 
 ---
 
-## 📜 License
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+StreamKernel is licensed under the Apache License, Version 2.0.
 
-**Author:** Steven Lopez
+Copyright © 2025 Steven Lopez.
+
+This project is developed and maintained by Steven Lopez.
