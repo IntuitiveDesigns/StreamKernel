@@ -15,36 +15,48 @@
 # SPDX-License-Identifier: Apache-2.0
 
 global:
-  scrape_interval: 1s
+  scrape_interval: 5s
+  evaluation_interval: 5s
 
 scrape_configs:
   # ==========================================================
-  # StreamKernel pipeline (KafkaApp running on the HOST)
+  # Prometheus self-scrape (helps debug Prometheus)
   # ==========================================================
-  - job_name: "algorithm-streamkernel-pipeline"
-    metrics_path: "/metrics"
+  - job_name: "prometheus"
     static_configs:
-      - targets: ["host.docker.internal:8080"]
+      - targets: ["localhost:9090"]
         labels:
-          app: "streamkernel"
-          component: "pipeline"
+          app: "prometheus"
 
   # ==========================================================
-  # Kafka exporter (runs in Docker)
+  # StreamKernel runtime (container)
   # ==========================================================
-  - job_name: "kafka"
+  - job_name: "streamkernel"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["streamkernel:8080"]
+        labels:
+          app: "streamkernel"
+          component: "runtime"
+
+  # ==========================================================
+  # Kafka exporter (container)
+  # ==========================================================
+  - job_name: "kafka-exporter"
     metrics_path: "/metrics"
     static_configs:
       - targets: ["kafka-exporter:9308"]
         labels:
           app: "kafka"
+          component: "exporter"
 
   # ==========================================================
-  # Postgres exporter (runs in Docker)
+  # Postgres exporter (container)
   # ==========================================================
-  - job_name: "postgres"
+  - job_name: "postgres-exporter"
     metrics_path: "/metrics"
     static_configs:
       - targets: ["postgres-exporter:9187"]
         labels:
           app: "postgres"
+          component: "exporter"

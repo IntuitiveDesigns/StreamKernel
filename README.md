@@ -125,6 +125,44 @@ java -Xms4g -Xmx4g -XX:+UseZGC -XX:+ZGenerational -jar .\build\libs\StreamKernel
 ```
 
 ---
+🚀 Selecting the Active Pipeline
+
+The active pipeline is selected using the SK_CONFIG_PATH environment variable.
+
+Example (Docker / Docker Compose)
+environment:
+SK_CONFIG_PATH: /etc/streamkernel/config/profiles/secure-durable-mtls-opa.docker.properties
+
+At startup, StreamKernel logs the resolved configuration source:
+✅ Loaded configuration from file:
+/etc/streamkernel/config/profiles/secure-durable-mtls-opa.docker.properties
+
+If the file does not exist or is missing required keys, startup fails fast.
+
+❌ Deprecated: pipeline.properties
+
+pipeline.properties is no longer used and should not exist in the repository.
+
+Why it was removed
+
+Prevents configuration ambiguity
+
+Eliminates shadow or unused configs
+
+Ensures Docker, CI, and production behave identically
+
+Forces explicit, auditable pipeline definitions
+
+If pipeline.properties is present, it is ignored.
+
+🧩 Required Configuration Keys
+
+Each active profile must define the following keys:
+
+pipeline.name=<logical-pipeline-name>
+source.type=<SOURCE_PLUGIN>
+sink.type=<SINK_PLUGIN>
+---
 
 Then follow the specific playbooks in `docs/`.
 
