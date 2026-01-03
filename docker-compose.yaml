@@ -152,7 +152,7 @@ services:
   # =======================================================================
   # StreamKernel runtime (Option A) — depends only on what the active profile needs
   #
-  # Best practice: keep this "core" runtime minimal. Enable optional backends
+  # Keep this "core" runtime minimal. Enable optional backends
   # (mongo/postgres/etc.) via compose profiles when testing those connectors.
   # =======================================================================
   streamkernel:

@@ -1,0 +1,25 @@
+/*
+ * Copyright 2025 Steven Lopez
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package com.intuitivedesigns.streamkernel.plugins.redis;
+
+import com.intuitivedesigns.streamkernel.cache.RedisCacheStrategy;
+import com.intuitivedesigns.streamkernel.config.PipelineConfig;
+import com.intuitivedesigns.streamkernel.core.CacheStrategy;
+import com.intuitivedesigns.streamkernel.metrics.MetricsRuntime;
+import com.intuitivedesigns.streamkernel.spi.CachePlugin;
+
+public class RedisCachePlugin implements CachePlugin {
+
+    @Override
+    public String id() {
+        return "REDIS";
+    }
+
+    @Override
+    public CacheStrategy<String> create(PipelineConfig config, MetricsRuntime metrics) {
+        return RedisCacheStrategy.fromConfig(config, metrics);
+    }
+}

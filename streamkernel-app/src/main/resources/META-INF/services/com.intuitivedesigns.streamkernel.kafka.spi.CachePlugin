@@ -1,0 +1,2 @@
+plugins.com.intuitivedesigns.streamkernel.NoopCachePlugin
+plugins.com.intuitivedesigns.streamkernel.LocalCachePlugin

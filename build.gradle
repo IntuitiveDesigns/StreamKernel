@@ -1,4 +1,4 @@
-// Copyright 2025 Steven Lopez
+// Copyright 2026 Steven Lopez
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,116 +15,36 @@
 // SPDX-License-Identifier: Apache-2.0
 
 plugins {
-    id 'org.springframework.boot' version '3.2.5'
-    id 'io.spring.dependency-management' version '1.1.4'
-    id "com.github.davidmc24.gradle.plugin.avro" version "1.9.1"
-    id 'java'
-    id 'application' // <--- ADDED: Required to define mainClassName for the Manifest
-    id 'com.github.johnrengelman.shadow' version '8.1.1' // <--- ADDED: Builds the "Fat JAR"
+    id 'org.springframework.boot' version '3.2.5' apply false
+    id 'io.spring.dependency-management' version '1.1.4' apply false
+    id "com.github.davidmc24.gradle.plugin.avro" version "1.9.1" apply false
+    id 'com.github.johnrengelman.shadow' version '8.1.1' apply false
 }
 
-group = 'com.example.streamkernel'
-version = '0.0.1-SNAPSHOT'
+allprojects {
+    group = "com.intuitivedesigns.streamkernel"
+    version = "0.0.1-SNAPSHOT"
 
-java {
-    sourceCompatibility = '21'
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+    repositories {
+        mavenCentral()
+        maven { url "https://packages.confluent.io/maven" }
     }
 }
 
-// Configuration for the Application Plugin
-application {
-    mainClass = 'com.example.streamkernel.kafka.KafkaApp'
-}
+subprojects {
+    // do NOT apply 'java' here
 
-// Configuration for Spring Boot (Kept for compatibility)
-springBoot {
-    mainClass = 'com.example.streamkernel.kafka.KafkaApp'
-}
-
-configurations {
-    compileOnly {
-        extendsFrom annotationProcessor
-    }
-}
-
-repositories {
-    mavenCentral()
-    maven { url "https://packages.confluent.io/maven" }
-}
-
-dependencies {
-    // Core Framework
-    implementation 'org.springframework.boot:spring-boot-starter'
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
-
-    // Kafka Client
-    implementation 'org.apache.kafka:kafka-clients:3.7.0'
-
-    // Logging & Metrics
-    implementation 'ch.qos.logback:logback-classic'
-    implementation 'io.micrometer:micrometer-core'
-
-    // Lombok
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-
-    // Testing
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-
-    // Visual Observability
-    implementation 'io.micrometer:micrometer-registry-prometheus'
-
-    // Avro + Confluent Schema Registry
-    implementation 'io.confluent:kafka-avro-serializer:7.6.1'
-    implementation 'org.apache.avro:avro:1.11.3'
-
-    // PostgreSQL support
-    implementation 'org.postgresql:postgresql:42.7.2'
-
-    // DataDog support
-    implementation 'io.micrometer:micrometer-registry-datadog'
-
-    // Redis Client
-    implementation 'redis.clients:jedis:5.1.0'
-
-    // MongoDB support
-    implementation 'org.mongodb:mongodb-driver-sync:5.0.0'
-
-    // SPI Helper (Google Auto Service)
-    compileOnly 'com.google.auto.service:auto-service:1.1.1'
-    annotationProcessor 'com.google.auto.service:auto-service:1.1.1'
-}
-
-generateAvroJava {
-    source("src/main/resources/avro")
-    outputDir = file("build/generated/sources/avro/java/main")
-}
-
-sourceSets {
-    main {
+    plugins.withId("java") {
         java {
-            srcDir("build/generated/sources/avro/java/main")
+            toolchain { languageVersion = JavaLanguageVersion.of(21) }
         }
+        tasks.withType(Test).configureEach { useJUnitPlatform() }
+    }
+
+    plugins.withId("java-library") {
+        java {
+            toolchain { languageVersion = JavaLanguageVersion.of(21) }
+        }
+        tasks.withType(Test).configureEach { useJUnitPlatform() }
     }
 }
-
-tasks.named("compileJava").configure {
-    dependsOn("generateAvroJava")
-}
-
-tasks.named('test') {
-    useJUnitPlatform()
-}
-
-// --- SHADOW JAR CONFIGURATION ---
-// This ensures the "shadowJar" task knows about the Spring Boot dependencies
-// and merges service files (important for SPI plugins like your Connectors)
-shadowJar {
-    archiveClassifier.set('all') // The file will be named StreamKernel-0.0.1-SNAPSHOT-all.jar
-    mergeServiceFiles()
-}
-
-// Ensure 'gradle build' also generates the shadow jar
-tasks.build.dependsOn tasks.shadowJar

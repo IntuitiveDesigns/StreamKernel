@@ -1,0 +1,3 @@
+plugins.com.intuitivedesigns.streamkernel.NoopTransformerPlugin
+plugins.com.intuitivedesigns.streamkernel.UppercaseTransformerPlugin
+plugins.com.intuitivedesigns.streamkernel.AiTransformerPlugin

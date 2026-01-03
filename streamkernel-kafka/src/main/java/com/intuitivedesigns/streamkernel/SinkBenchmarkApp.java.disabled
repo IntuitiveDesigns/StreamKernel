@@ -1,0 +1,172 @@
+/*
+ * Copyright 2025 Steven Lopez
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package com.intuitivedesigns.streamkernel;
+
+import com.intuitivedesigns.streamkernel.config.PipelineConfig;
+import com.intuitivedesigns.streamkernel.config.PipelineFactory;
+import com.intuitivedesigns.streamkernel.core.OutputSink;
+import com.intuitivedesigns.streamkernel.core.PipelinePayload;
+import com.intuitivedesigns.streamkernel.metrics.MetricsFactory;
+import com.intuitivedesigns.streamkernel.metrics.MetricsRuntime;
+import com.intuitivedesigns.streamkernel.metrics.MetricsSettings;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.Instant;
+import java.util.Collections;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.LongAdder;
+
+/**
+ * Standalone tool to stress-test JUST the Sink (Kafka/Mongo/DevNull).
+ * Bypasses the Orchestrator to find the maximum write speed of the infrastructure.
+ *
+ * Usage:
+ * -Dbenchmark.target.count=10000000
+ * -Dsink.type=DEVNULL
+ */
+public final class SinkBenchmarkApp {
+
+    private static final Logger log = LoggerFactory.getLogger(SinkBenchmarkApp.class);
+
+    // Config keys
+    private static final String CFG_PAYLOAD_BYTES = "benchmark.payload.bytes";
+    private static final String CFG_TARGET_COUNT = "benchmark.target.count";
+    private static final String CFG_REPORT_MS = "benchmark.report.ms";
+    private static final String CFG_WARMUP = "benchmark.warmup";
+
+    // Defaults
+    private static final int DEFAULT_PAYLOAD_BYTES = 1024;
+    private static final long DEFAULT_TARGET_COUNT = 1_000_000L;
+    private static final long DEFAULT_REPORT_MS = 1_000L;
+    private static final boolean DEFAULT_WARMUP = true;
+
+    private SinkBenchmarkApp() {}
+
+    public static void main(String[] args) {
+        log.info("=== Sink Benchmark Tool (Infrastructure Stress Test) ===");
+
+        final PipelineConfig config = PipelineConfig.get();
+        final MetricsRuntime metrics = MetricsFactory.init(MetricsSettings.from(config));
+
+        final int payloadBytes = clampInt(config.getInt(CFG_PAYLOAD_BYTES, DEFAULT_PAYLOAD_BYTES), 0, Integer.MAX_VALUE);
+        final long targetCount = clampLong(config.getLong(CFG_TARGET_COUNT, DEFAULT_TARGET_COUNT), 1L, Long.MAX_VALUE);
+        final long reportMs = clampLong(config.getLong(CFG_REPORT_MS, DEFAULT_REPORT_MS), 250L, 60_000L);
+        final boolean doWarmup = config.getBoolean(CFG_WARMUP, DEFAULT_WARMUP);
+
+        log.info("Config: payloadBytes={} targetCount={} reportMs={} warmup={}",
+                payloadBytes, targetCount, reportMs, doWarmup);
+
+        // Pre-allocate payload to avoid allocation in hot loop
+        final String staticData = (payloadBytes == 0) ? "" : "X".repeat(payloadBytes);
+        final PipelinePayload<String> payload = new PipelinePayload<>(
+                "BENCH-1",
+                staticData,
+                Instant.now(),
+                Collections.emptyMap()
+        );
+
+        final AtomicBoolean running = new AtomicBoolean(true);
+        final CountDownLatch stopLatch = new CountDownLatch(1);
+        final ScheduledExecutorService reporter = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "sink-bench-reporter");
+            t.setDaemon(true);
+            return t;
+        });
+
+        OutputSink<?> rawSink = null;
+
+        try {
+            rawSink = PipelineFactory.createSink(config, metrics);
+            log.info("Connected to Sink: {}", rawSink.getClass().getSimpleName());
+
+            // Type Check Safety
+            // Note: This benchmark currently only supports Sinks that accept String.
+            // If you use Avro, this cast will fail.
+            @SuppressWarnings("unchecked")
+            final OutputSink<String> sink = (OutputSink<String>) rawSink;
+
+            // --- WARMUP PHASE ---
+            if (doWarmup) {
+                log.info("🔥 Warming up JVM (10,000 items)...");
+                for (int i = 0; i < 10_000; i++) {
+                    sink.write(payload);
+                }
+                log.info("Warmup complete. Starting measurement.");
+            }
+
+            // --- MEASUREMENT PHASE ---
+            final LongAdder counter = new LongAdder();
+            final long startNs = System.nanoTime();
+
+            // Reporter Thread
+            reporter.scheduleAtFixedRate(() -> {
+                final long total = counter.sum();
+                final double seconds = (System.nanoTime() - startNs) / 1_000_000_000.0;
+                final double eps = seconds <= 0 ? 0.0 : total / seconds;
+                log.info("SPEED: {:,.0f} EPS | Total: {:,.0f}", eps, (double)total);
+            }, reportMs, reportMs, TimeUnit.MILLISECONDS);
+
+            // Shutdown Hook
+            final OutputSink<?> finalSink = rawSink; // Capture for lambda
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                if (!running.compareAndSet(true, false)) return;
+                log.info("Shutdown signal received.");
+                reporter.shutdownNow();
+
+                // Close sink here to ensure flush
+                try { if (finalSink != null) finalSink.close(); } catch (Exception ignored) {}
+                stopLatch.countDown();
+            }, "sink-bench-shutdown"));
+
+            log.info("🚀 Starting high-throughput write loop...");
+
+            long i = 0;
+            // Hot Loop: Minimized checks
+            while (running.get() && i < targetCount) {
+                sink.write(payload);
+                counter.increment();
+                i++;
+            }
+
+            // Stop
+            running.set(false);
+
+            final long endNs = System.nanoTime();
+            final long total = counter.sum();
+            final double seconds = (endNs - startNs) / 1_000_000_000.0;
+            final double eps = seconds <= 0 ? 0.0 : total / seconds;
+
+            log.info("FINISHED: Sent {:,.0f} items in {:.2f}s | Speed: {:,.0f} EPS",
+                    (double)total, seconds, eps);
+
+        } catch (ClassCastException cce) {
+            log.error("CONFIGURATION ERROR: This benchmark tool only supports Sinks that accept String payloads. " +
+                    "Your configured sink expects a different type (likely Avro).", cce);
+        } catch (Exception e) {
+            log.error("Benchmark failed", e);
+        } finally {
+            reporter.shutdownNow();
+            if (rawSink != null) {
+                try { rawSink.close(); } catch (Exception ignored) {}
+            }
+            try { metrics.close(); } catch (Exception ignored) {}
+            stopLatch.countDown();
+        }
+    }
+
+    private static int clampInt(int v, int min, int max) {
+        return Math.max(min, Math.min(max, v));
+    }
+
+    private static long clampLong(long v, long min, long max) {
+        return Math.max(min, Math.min(max, v));
+    }
+}

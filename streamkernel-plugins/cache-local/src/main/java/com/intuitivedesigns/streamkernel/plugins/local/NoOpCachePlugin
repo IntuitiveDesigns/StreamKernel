@@ -1,0 +1,46 @@
+/*
+ * Copyright 2025 Steven Lopez
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package com.intuitivedesigns.streamkernel.plugins.local;
+
+import com.intuitivedesigns.streamkernel.config.PipelineConfig;
+import com.intuitivedesigns.streamkernel.core.CacheStrategy;
+import com.intuitivedesigns.streamkernel.core.PipelinePayload;
+import com.intuitivedesigns.streamkernel.metrics.MetricsRuntime;
+import com.intuitivedesigns.streamkernel.spi.CachePlugin;
+
+import java.util.Optional;
+
+public class NoOpCachePlugin implements CachePlugin {
+
+    @Override
+    public String id() {
+        return "NOOP";
+    }
+
+    @Override
+    public CacheStrategy<String> create(PipelineConfig config, MetricsRuntime metrics) {
+        return new NoOpStrategy();
+    }
+
+    private static class NoOpStrategy implements CacheStrategy<String> {
+        @Override
+        public void init() { }
+
+        @Override
+        public void put(String key, PipelinePayload<String> value) { }
+
+        @Override
+        public Optional<PipelinePayload<String>> get(String key) {
+            return Optional.empty();
+        }
+
+        @Override
+        public void remove(String key) { }
+
+        @Override
+        public void close() { }
+    }
+}

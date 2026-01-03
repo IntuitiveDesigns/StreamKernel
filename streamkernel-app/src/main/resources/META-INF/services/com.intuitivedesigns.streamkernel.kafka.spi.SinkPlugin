@@ -1,0 +1,6 @@
+plugins.com.intuitivedesigns.streamkernel.KafkaSinkPlugin
+plugins.com.intuitivedesigns.streamkernel.DevNullSinkPlugin
+com.intuitivedesigns.streamkernel.kafka.plugins.DlqLogSinkPlugin
+plugins.com.intuitivedesigns.streamkernel.KafkaAvroSinkPlugin
+plugins.com.intuitivedesigns.streamkernel.MongoSinkPlugin
+com.intuitivedesigns.streamkernel.kafka.plugins.KafkaDlqSinkPlugin

@@ -1,0 +1,32 @@
+/*
+ * Copyright 2025 Steven Lopez
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package com.intuitivedesigns.streamkernel.plugins;
+
+import com.intuitivedesigns.streamkernel.config.PipelineConfig;
+import com.intuitivedesigns.streamkernel.core.Transformer;
+import com.intuitivedesigns.streamkernel.metrics.MetricsRuntime;
+import com.intuitivedesigns.streamkernel.spi.PluginKind; // Import this
+import com.intuitivedesigns.streamkernel.spi.TransformerPlugin;
+import com.intuitivedesigns.streamkernel.plugins.transform.AiEnrichmentTransformer;
+
+public class AiTransformerPlugin implements TransformerPlugin {
+
+    @Override
+    public String id() {
+        return "AI_ENRICHMENT";
+    }
+
+    @Override
+    public PluginKind kind() {
+        return PluginKind.TRANSFORMER;
+    }
+
+    @Override
+    public Transformer<?, ?> create(PipelineConfig config, MetricsRuntime metrics) {
+        String provider = config.getString("ai.provider", "MOCK").toUpperCase();
+        return new AiEnrichmentTransformer(config, metrics);
+    }
+}

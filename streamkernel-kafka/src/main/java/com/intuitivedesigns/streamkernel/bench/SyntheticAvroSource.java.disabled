@@ -1,0 +1,139 @@
+/*
+ * Copyright 2025 Steven Lopez
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package com.intuitivedesigns.streamkernel.bench;
+
+import com.intuitivedesigns.streamkernel.avro.CustomerEvent;
+import com.intuitivedesigns.streamkernel.core.PipelinePayload;
+import com.intuitivedesigns.streamkernel.core.SourceConnector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * SYNTHETIC AVRO SOURCE (v2 - Optimized Ring Buffer)
+ *
+ * Improvements:
+ * - Precomputes payloads and Avro objects (allocation-free hot path).
+ * - Adds configurable tuning constructor (batch count + batch size).
+ * - Reuses a single empty metadata map reference.
+ * - Validates inputs; fetchBatch contract respected.
+ * - Uses unmodifiable ring + batches for safe sharing.
+ */
+public final class SyntheticAvroSource implements SourceConnector<CustomerEvent> {
+
+    private static final Logger log = LoggerFactory.getLogger(SyntheticAvroSource.class);
+
+    private static final String[] DESCRIPTIONS = {
+            "My screen is flickering red and failing",
+            "I love this product, it works perfectly",
+            "System crash when loading data",
+            "Best purchase ever, highly recommended"
+    };
+
+    private static final String TIER_PLATINUM = "PLATINUM";
+    private static final String TIER_STANDARD = "STANDARD";
+
+    private static final int DEFAULT_CACHED_BATCH_COUNT = 100;
+    private static final int DEFAULT_PRE_BAKED_BATCH_SIZE = 4000;
+
+    // Immutable Ring Buffer
+    private final List<List<PipelinePayload<CustomerEvent>>> ringBuffer;
+    private final int bufferSize;
+    private final int preBakedBatchSize;
+
+    // Hot path counter
+    private final AtomicInteger bufferIndex = new AtomicInteger(0);
+
+    public SyntheticAvroSource() {
+        this(DEFAULT_CACHED_BATCH_COUNT, DEFAULT_PRE_BAKED_BATCH_SIZE);
+    }
+
+    public SyntheticAvroSource(int cachedBatchCount, int preBakedBatchSize) {
+        if (cachedBatchCount <= 0) throw new IllegalArgumentException("cachedBatchCount must be > 0");
+        if (preBakedBatchSize <= 0) throw new IllegalArgumentException("preBakedBatchSize must be > 0");
+
+        this.bufferSize = cachedBatchCount;
+        this.preBakedBatchSize = preBakedBatchSize;
+
+        log.info("Pre-allocating Avro Ring Buffer: {} batches of {} items...", cachedBatchCount, preBakedBatchSize);
+
+        final ArrayList<List<PipelinePayload<CustomerEvent>>> ring = new ArrayList<>(cachedBatchCount);
+        final ThreadLocalRandom rnd = ThreadLocalRandom.current();
+        final Instant bootTime = Instant.now();
+        final var emptyMeta = Collections.<String, String>emptyMap();
+
+        long globalSeq = 0L;
+
+        for (int i = 0; i < cachedBatchCount; i++) {
+            final ArrayList<PipelinePayload<CustomerEvent>> batch = new ArrayList<>(preBakedBatchSize);
+
+            for (int j = 0; j < preBakedBatchSize; j++) {
+                globalSeq++;
+
+                final String id = "c-" + globalSeq;
+                final String desc = DESCRIPTIONS[rnd.nextInt(DESCRIPTIONS.length)];
+                final String tier = rnd.nextBoolean() ? TIER_PLATINUM : TIER_STANDARD;
+
+                // Build Avro objects once (construction-time cost only)
+                final CustomerEvent event = CustomerEvent.newBuilder()
+                        .setCustomerId(id)
+                        .setName(desc)
+                        .setTier(tier)
+                        .build();
+
+                batch.add(new PipelinePayload<>(id, event, bootTime, emptyMeta));
+            }
+
+            ring.add(Collections.unmodifiableList(batch));
+        }
+
+        this.ringBuffer = Collections.unmodifiableList(ring);
+
+        log.info("Avro Ring Buffer Ready. Total payloads: {}", (long) cachedBatchCount * (long) preBakedBatchSize);
+    }
+
+    @Override
+    public void connect() {
+        log.info("Synthetic Avro Source Connected.");
+    }
+
+    @Override
+    public void disconnect() {
+        // No-op
+    }
+
+    @Override
+    public PipelinePayload<CustomerEvent> fetch() {
+        return ringBuffer.get(nextIndex()).get(0);
+    }
+
+    @Override
+    public List<PipelinePayload<CustomerEvent>> fetchBatch(int maxBatchSize) {
+        if (maxBatchSize <= 0) {
+            return Collections.emptyList();
+        }
+
+        final List<PipelinePayload<CustomerEvent>> preBaked = ringBuffer.get(nextIndex());
+
+        // Zero-copy fast path
+        if (maxBatchSize >= preBakedBatchSize) {
+            return preBaked;
+        }
+
+        // Lightweight view
+        return preBaked.subList(0, maxBatchSize);
+    }
+
+    private int nextIndex() {
+        return (bufferIndex.getAndIncrement() & 0x7FFFFFFF) % bufferSize;
+    }
+}
