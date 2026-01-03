@@ -1,53 +1,44 @@
 # Changelog
 
-All notable changes to this project are documented in this file.
+All notable changes to the **StreamKernel** project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to Semantic Versioning.
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
----
-
-## [4.0.0] – 2025-12-27
+## [0.1.0] - 2026-01-03
+### 🚀 Major Architecture Overhaul
+This release marks the transition from a monolithic prototype to an Enterprise Multi-Module Architecture under **Apache License 2.0**.
 
 ### Added
-- Profile-based pipeline configuration via `SK_CONFIG_PATH`
-- Support for environment-specific, immutable pipeline definitions
-- Explicit validation of required pipeline keys:
-    - `pipeline.name`
-    - `source.type`
-    - `sink.type`
-- Improved startup diagnostics for missing or invalid configuration
-- Docker-first configuration model aligned with Kubernetes ConfigMaps
-- Prometheus metrics initialization confirmed under profile-based configs
+- **Multi-Module Structure**: Split codebase into isolated modules:
+    - \streamkernel-spi\ (Interfaces & Contracts)
+    - \streamkernel-core\ (Engine & Orchestrator)
+    - \streamkernel-plugins\ (Extensions)
+    - \streamkernel-app\ (Bootstrap)
+- **High-Performance Source**: Added \source-synthetic\ plugin implementing a **Lock-Free Ring Buffer**.
+    - Verified throughput: **>13 Million EPS** per thread (Zero-Allocation payload reuse).
+    - Deterministic SplitMix64 high-entropy generation.
+- **Enterprise Security**: Added \security-opa\ plugin for Open Policy Agent integration.
+    - Implemented **Fail-Closed** authorization logic.
+    - Added short-lived caching with gated flush (DoS protection).
+- **Configuration**:
+    - Profile-based pipeline configuration via \SK_CONFIG_PATH\.
+    - Explicit validation of required keys (\source.type\, \sink.type\).
+    - Docker-first configuration model aligned with Kubernetes ConfigMaps.
+- **Observability**: Added vendor-agnostic \MetricsRuntime\ SPI (Prometheus support).
 
 ### Changed
-- StreamKernel now loads **exactly one pipeline definition at startup**
-- Configuration precedence standardized:
-    1. Environment variables (`SK_*`)
-    2. System properties
-    3. Profile file selected via `SK_CONFIG_PATH`
-- Docker Compose now mirrors enterprise deployment behavior
-- Startup fails fast on misconfiguration instead of partially initializing
+- **License**: Changed project license from MIT to **Apache License 2.0**.
+- **Identity**: Repository ownership transferred to **IntuitiveDesigns**.
+- **Orchestrator**: Re-engineered \PipelineOrchestrator\ to support **Virtual Thread per-task isolation**.
+- **Startup**: StreamKernel now fails fast on misconfiguration instead of partially initializing.
 
 ### Removed
-- Implicit loading of `pipeline.properties`
-- Automatic fallback to classpath configuration
-- Ambiguous multi-file configuration behavior
+- **Monolith Artifacts**: Removed legacy \CustomerEvent\ and flat package structure.
+- **Implicit Config**: Removed automatic fallback to \pipeline.properties\ (explicit profile required).
 
-### Breaking Changes
-- `pipeline.properties` is no longer used or supported
-- A pipeline **must** define `source.type` explicitly
-- Configuration profiles must be selected explicitly via `SK_CONFIG_PATH`
-- Existing deployments relying on classpath defaults must migrate
-
-### Migration Notes
-To migrate from older versions:
-
-1. Select an existing profile under `config/profiles/`
-2. Ensure it defines:
-    - `pipeline.name`
-    - `source.type`
-    - `sink.type`
-3. Set the environment variable:
-   ```bash
-   SK_CONFIG_PATH=/etc/streamkernel/config/profiles/<profile>.properties
+## [0.0.1] - 2025-10-15
+### Added
+- Initial proof-of-concept prototype.
+- Basic Kafka Producer/Consumer loop.
+- Virtual Thread Orchestrator proof-of-concept.
