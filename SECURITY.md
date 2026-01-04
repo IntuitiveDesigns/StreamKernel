@@ -1,14 +1,13 @@
-# Security Policy
+# Security
 
-## Reporting a Vulnerability
-If you discover a security vulnerability in StreamKernel, please do NOT open a public issue.
+OPA:
+- per-batch authorization
+- TTL cache
+- fail-closed to DLQ
 
-Instead, contact the maintainer privately with details sufficient to reproduce the issue.
+mTLS:
+- optional Kafka SSL
 
-## Security Philosophy
-- Fail-closed by default
-- Explicit authorization (OPA)
-- Defense-in-depth (mTLS, RBAC)
-- Secure-by-default configurations
-
-Thank you for helping keep StreamKernel secure.
+DLQ:
+- Kafka DLQ topic
+- log fallback
