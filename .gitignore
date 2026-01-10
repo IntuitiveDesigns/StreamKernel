@@ -34,3 +34,5 @@ secrets/
 *.crt
 password.txt
 *_creds
+
+.venv-onnx
