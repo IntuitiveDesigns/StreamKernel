@@ -17,6 +17,16 @@ It models real-world, production-grade streaming workloads including backpressur
 
 ---
 
+## Note on AI Inference Capabilities
+
+StreamKernel includes private, production-grade capabilities for **in-process AI inference and policy-aware stream execution** that are intentionally excluded from this public repository.
+
+These components are shared selectively with enterprise partners under NDA and are not open-sourced.
+
+The public code demonstrates the execution model; private components extend it into AI-assisted and regulated deployment scenarios.
+
+---
+
 ## 🚀 Key Features
 
 ### Core Architecture
