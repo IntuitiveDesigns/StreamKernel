@@ -16,7 +16,7 @@ StreamKernel is a high-performance, Kafka-native event orchestration engine desi
 It models real-world, production-grade streaming workloads including backpressure, enrichment, durability, security, and observability, while sustaining extremely high throughput using Java 21 Virtual Threads and ZGC.
 
 ---
-![StreamKernel djl onnx](assets/streamkernel-djl-onnx.png)
+<img src="assets/streamkernel-djl-onnx.png" alt="StreamKernel DJL ONNX" width="200"></br>
 ## Note on AI Inference Capabilities
 
 StreamKernel includes private, production-grade capabilities for **in-process AI inference and policy-aware stream execution** that are intentionally excluded from this public repository.
