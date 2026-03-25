@@ -28,6 +28,7 @@ All benchmarks were run on an Intel i9-8950HK laptop (6 cores / 12 threads, 32GB
 | Kafka Bench (NOOP) | **956K ops/sec** | 563M | At-least-once | Raw Kafka producer ceiling |
 | Kafka ALO (WireEvent) | **525K ops/sec** | 313M | At-least-once | With transform, 512-byte payload |
 | Kafka EOS (WireEvent) | **507K ops/sec** | 301M | Exactly-once | -3.5% cost vs ALO |
+| mTLS + OPA (NOOP) | **366K ops/sec** | 217M | At-least-once | TLSv1.3 + OPA `fail.open=false`, 1,024-byte payload |
 | MongoDB Insert | **163K docs/sec** | 95.5M | At-least-once | Pure insertMany, WiredTiger ceiling |
 
 **100% pipeline integrity across all runs. Zero data loss. Zero Full GC events.**
