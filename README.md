@@ -24,19 +24,19 @@ StreamKernel is a **Java 21 event orchestration engine** that runs intelligence 
 All benchmarks below are executed using the same StreamKernel runtime,
 with different pipeline configurations:
 
-AI Inference (CPU/GPU)
-Vector Database Enrichment
-HTTP Model Serving Comparison
-Kafka Ingestion / Sink
-Exactly-Once Delivery
-DLQ + Resilience
-OPA Policy Enforcement
-Backpressure Saturation
-Resource-Bounded Deployments
+- AI Inference (CPU/GPU)
+- Vector Database Enrichment
+- HTTP Model Serving Comparison
+- Kafka Ingestion / Sink
+- Exactly-Once Delivery
+- DLQ + Resilience
+- OPA Policy Enforcement
+- Backpressure Saturation
+- Resource-Bounded Deployments
 
-No architectural rewrites.
-No separate services.
-No microservice orchestration.
+- No architectural rewrites.
+- No separate services.
+- No microservice orchestration.
 
 Just configuration-driven pipelines.
 
