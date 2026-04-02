@@ -1,3 +1,16 @@
+## ⚠️ This Repository Has Been Archived
+
+StreamKernel has been significantly redesigned and re-licensed under 
+the Elastic License 2.0 (ELv2).
+
+A new repository with the updated codebase will be published shortly.
+This repository is preserved as a historical reference for the 
+original Apache 2.0 release. No new contributions are accepted here.
+
+**Watch this space — new repo link coming soon.**
+
+---
+
 # StreamKernel
 [![Architected by Steven Lopez](https://img.shields.io/badge/Architected%20by-Steven%20Lopez-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/steve-lopez-b9941/)
 ---
