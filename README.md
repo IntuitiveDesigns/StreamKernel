@@ -1,13 +1,7 @@
 ## ⚠️ This Repository Has Been Archived
 
-StreamKernel has been significantly redesigned and re-licensed under 
-the Elastic License 2.0 (ELv2).
-
-A new repository with the updated codebase will be published shortly.
-This repository is preserved as a historical reference for the 
-original Apache 2.0 release. No new contributions are accepted here.
-
-**Watch this space — new repo link coming soon.**
+> ⚠️ **This repository is archived.** The current public release is at
+> **[IntuitiveDesigns/StreamKernel-io](https://github.com/IntuitiveDesigns/StreamKernel-io)**.
 
 ---
 
